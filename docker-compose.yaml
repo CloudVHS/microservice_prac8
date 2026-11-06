@@ -1,0 +1,129 @@
+name: pr7miar
+x-app: &app
+  build: .
+  image: pr7miar-services:local
+  restart: unless-stopped
+  depends_on:
+    rabbitmq:
+      condition: service_healthy
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+    interval: 5s
+    timeout: 4s
+    retries: 15
+    start_period: 15s
+x-environment: &environment
+  AUTH_SECRET: ${AUTH_SECRET:-pr7-local-development-secret-change-before-deploy}
+  INTERNAL_TOKEN: ${INTERNAL_TOKEN:-pr7-local-service-token}
+  DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD:-Admin-pr7-2026!}
+  AMQP_URL: amqp://${RABBITMQ_USER:-pr7}:${RABBITMQ_PASSWORD:-pr7-local-broker}@rabbitmq:5672/
+  USER_URL: http://user:8000
+  DICTIONARY_URL: http://dictionary:8000
+  PAYMENT_URL: http://payment:8000
+services:
+  rabbitmq:
+    image: rabbitmq:4-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-pr7}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-pr7-local-broker}
+    ports:
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+  user:
+    <<: *app
+    environment:
+      <<: *environment
+      SERVICE_NAME: user
+      DATABASE_URL: sqlite:////data/user.db
+    ports:
+      - "127.0.0.1:8001:8000"
+    volumes:
+      - user_data:/data
+  practice:
+    <<: *app
+    environment:
+      <<: *environment
+      SERVICE_NAME: practice
+      DATABASE_URL: sqlite:////data/practice.db
+    ports:
+      - "127.0.0.1:8002:8000"
+    volumes:
+      - practice_data:/data
+  grammar:
+    <<: *app
+    environment:
+      <<: *environment
+      SERVICE_NAME: grammar
+      DATABASE_URL: sqlite:////data/grammar.db
+    ports:
+      - "127.0.0.1:8003:8000"
+    volumes:
+      - grammar_data:/data
+  lexicon:
+    <<: *app
+    environment:
+      <<: *environment
+      SERVICE_NAME: lexicon
+      DATABASE_URL: sqlite:////data/lexicon.db
+    ports:
+      - "127.0.0.1:8004:8000"
+    volumes:
+      - lexicon_data:/data
+  dictionary:
+    <<: *app
+    environment:
+      <<: *environment
+      SERVICE_NAME: dictionary
+      DATABASE_URL: sqlite:////data/dictionary.db
+    ports:
+      - "127.0.0.1:8005:8000"
+    volumes:
+      - dictionary_data:/data
+  reference:
+    <<: *app
+    environment:
+      <<: *environment
+      SERVICE_NAME: reference
+      DATABASE_URL: sqlite:////data/reference.db
+    ports:
+      - "127.0.0.1:8006:8000"
+    volumes:
+      - reference_data:/data
+  payment:
+    <<: *app
+    environment:
+      <<: *environment
+      SERVICE_NAME: payment
+      DATABASE_URL: sqlite:////data/payment.db
+    ports:
+      - "127.0.0.1:8007:8000"
+    volumes:
+      - payment_data:/data
+  notification:
+    <<: *app
+    environment:
+      <<: *environment
+      SERVICE_NAME: notification
+      DATABASE_URL: sqlite:////data/notification.db
+    ports:
+      - "127.0.0.1:8008:8000"
+    volumes:
+      - notification_data:/data
+volumes:
+  rabbitmq_data:
+  user_data:
+  practice_data:
+  grammar_data:
+  lexicon_data:
+  dictionary_data:
+  reference_data:
+  payment_data:
+  notification_data:
